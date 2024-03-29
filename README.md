@@ -55,7 +55,7 @@ We welcome contributions to make the Object to Texture Converter even better. Fe
 
 ## License
 
-This tool is distributed under the MIT License, with an added clause prohibiting commercial resale. While you're free to use and modify it for personal and commercial projects, selling the software or any derivatives is not allowed.
+This tool is distributed under the MIT License.
 
 [Full License Details](LICENSE)
 
