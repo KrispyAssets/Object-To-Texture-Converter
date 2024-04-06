@@ -73,7 +73,7 @@ namespace RRS.Converter
         public class AutoOrientationSettings
         {
             public OrientationDirection Direction = OrientationDirection.Forward;
-            public Vector3 DesiredOrientationOffset = Vector3.zero;
+            public Vector3 DesiredOrientationOffset = new Vector3(-15f, 145f, 0f);
         }
 
         #region General Settings
@@ -127,6 +127,9 @@ namespace RRS.Converter
         [HideInInspector] public string SelectedSavePath = "";
         [HideInInspector] public RenderTexture PreviewRenderTexture = null;
         [HideInInspector] public Camera PreviewCamera = null;
+
+        [HideInInspector] public Transform CurrentChild = null;
+        [HideInInspector] public Transform LastChild = null;
         #endregion
 
         public bool PathIsSelected => !string.IsNullOrEmpty(SelectedSavePath);
@@ -151,6 +154,7 @@ namespace RRS.Converter
             SetCamerasFOV((CenteringType == AutoCenteringTypes.FOV_Manipulation) ? FovManipulationValue : DefaultFOV);
             UpdateCamerasBackgroundAlpha();
 
+            TryGetActiveCaptureTargetChild();
             if (AutoCenterInBounds) { CenterObjectInCaptureBounds(); }
             if (AutoOrientate) { ApplyAutoOrientation(); }
         }
@@ -194,6 +198,7 @@ namespace RRS.Converter
             camera.clearFlags = CameraClearFlags.SolidColor;
             camera.depth = -1;
             camera.backgroundColor = Color.black;
+            camera.nearClipPlane = 0.01f;
         }
 
         private void SetCamerasFOV(float fov)
@@ -225,7 +230,7 @@ namespace RRS.Converter
 
             UnityEngine.Gizmos.color = Color.cyan;
 
-            Vector3 forward = camTransform.forward * CaptureDepth * fovManipulationMultiplier;
+            Vector3 forward = (camTransform.forward * CaptureDepth * fovManipulationMultiplier) * CenteringDepthBufferMultiplier;
             Vector3 center = camTransform.position + forward;
             Vector3 up = camTransform.up * (heightAtDepth * 0.5f);
             Vector3 right = camTransform.right * (widthAtDepth * 0.5f);
@@ -480,7 +485,7 @@ namespace RRS.Converter
 
             Vector3 forward = Camera.main.transform.forward * CaptureDepth;
             Vector3 desiredCenter = Camera.main.transform.position + forward * CenteringDepthBufferMultiplier;
-            var captureTargetChild = CaptureTarget.transform.GetChild(0);
+            Transform captureTargetChild = TryGetActiveCaptureTargetChild();
 
             Bounds combinedBounds = CalculateObjectBounds(captureTargetChild.gameObject, CenterIncludesChildrenBounds);
 
@@ -503,6 +508,35 @@ namespace RRS.Converter
             CaptureDepth = largestBound;
 
             UnityEditor.SceneView.RepaintAll();
+        }
+
+        private Transform TryGetActiveCaptureTargetChild()
+        {
+            if(CaptureTarget.transform.childCount == 0) 
+            { 
+                CurrentChild = null;
+                LastChild = null;
+                return null;
+            }
+
+            if(CurrentChild != null && CurrentChild.gameObject.activeInHierarchy && CurrentChild.transform.parent == CaptureTarget.transform) { return CurrentChild; }
+
+            CurrentChild = CaptureTarget.transform.GetChild(0);
+
+            for (int i = 0; i < CaptureTarget.transform.childCount; i++)
+            {
+                if (!CaptureTarget.transform.GetChild(i).gameObject.activeInHierarchy) { continue; }
+                CurrentChild = CaptureTarget.transform.GetChild(i);
+                break;
+            }
+
+            if(CurrentChild != LastChild)
+            {
+                TextureName = CurrentChild.name;
+                LastChild = CurrentChild;
+            }
+
+            return CurrentChild;
         }
 
         private Bounds CalculateObjectBounds(GameObject obj, bool includeChildren)
@@ -529,7 +563,7 @@ namespace RRS.Converter
         {
             if (CaptureTarget.transform.childCount == 0) return;
 
-            var childObject = CaptureTarget.transform.GetChild(0).gameObject;
+            var childObject = TryGetActiveCaptureTargetChild();
 
             Vector3 baseDirection = GetDirectionVector(AutoOrientationSetting.Direction);
             Quaternion baseRotation = Quaternion.LookRotation(baseDirection, Vector3.up);

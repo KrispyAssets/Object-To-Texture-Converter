@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Drawing.Printing;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.UIElements;
@@ -145,6 +146,7 @@ namespace RRS.Converter
 
         private void OnSceneGUI()
         {
+            //DrawLiveScenePreview();
             this.Repaint();
         }
 
@@ -347,7 +349,7 @@ namespace RRS.Converter
 
             if (GUILayout.Button(buttonTitle))
             {
-                string path = EditorUtility.OpenFolderPanel("Select Folder", "", "");
+                string path = EditorUtility.OpenFolderPanel("Select Folder", Application.dataPath, "");
                 if (!string.IsNullOrEmpty(path))
                 {
                     _converter.SetSelectedPath(path);
@@ -374,6 +376,41 @@ namespace RRS.Converter
             }
 
             EditorGUI.EndDisabledGroup();
+        }
+
+        private void DrawLiveScenePreview()
+        {
+            EditorGUILayout.LabelField("Live Preview:", EditorStyles.boldLabel);
+
+            var minPreview = new Vector2(MathF.Max((int)_converter.BakingSize, (int)_converter.MinPreviewSize), MathF.Max((int)_converter.BakingSize, (int)_converter.MinPreviewSize));
+            var previewSize = new Vector2(MathF.Min((int)minPreview.x, (int)_converter.MaxPreviewSize), MathF.Min((int)minPreview.x, (int)_converter.MaxPreviewSize));
+
+            Rect previewRect = new Rect(new Vector2(SceneView.lastActiveSceneView.position.width - previewSize.x,
+                                    SceneView.lastActiveSceneView.position.height - previewSize.y - 25f),
+                                    previewSize); // GUILayoutUtility.GetRect(previewSize.x, previewSize.y, GUI.skin.box);
+
+            if (_converter.DisplayAlphaInTexturePreview)
+            {
+                if (_checkerboardTexture == null || _lastPreviewSize.x != previewSize.x || _lastPreviewSize.y != previewSize.y)
+                {
+                    DestroyImmediate(_checkerboardTexture);
+                    _checkerboardTexture = GenerateCheckerboardTexture(128, 128, 16);
+
+                    _lastPreviewSize = previewSize;
+                }
+
+                FillRectWithTexture(previewRect, _checkerboardTexture, previewSize.x, previewSize.y);
+            }
+
+            if (_converter.PreviewRenderTexture)
+            {
+                if (Event.current.type == EventType.Repaint)
+                {
+                    GUI.DrawTexture(previewRect, _converter.PreviewRenderTexture);
+                }
+            }
+
+            UnityEditor.SceneView.RepaintAll();
         }
 
         private void DrawLivePreview()
@@ -433,6 +470,7 @@ namespace RRS.Converter
             GUI.BeginGroup(new Rect(rect.x + offsetX, rect.y + offsetY, previewWidth, previewHeight));
             float xTiles = previewWidth / texture.width;
             float yTiles = previewHeight / texture.height;
+
             for (float y = 0; y < yTiles; y++)
             {
                 for (float x = 0; x < xTiles; x++)
@@ -440,6 +478,7 @@ namespace RRS.Converter
                     GUI.DrawTexture(new Rect(x * texture.width, y * texture.height, texture.width, texture.height), texture);
                 }
             }
+
             GUI.EndGroup();
         }
     }

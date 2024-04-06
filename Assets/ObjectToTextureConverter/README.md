@@ -13,11 +13,6 @@ The Object to Texture Converter is an advanced Unity Editor tool designed for ga
 - **Precise Capturing**: Includes auto-centering and orientation adjustments for accurate captures.
 - **Visual Guidance**: Utilizes gizmos for real-time alignment and area visualization.
 
-## Installation
-
-1. **Download**: Clone or download the repository to your machine.
-2. **Import**: Place the ObjectToTextureConverter folder into your Unity project's `Assets` directory.
-
 ## Getting Started
 
 ### Using the Included Scene
@@ -51,13 +46,7 @@ For immediate use, open the provided "ObjectToTextureConverterScene". This scene
 
 ## Contributing
 
-We welcome contributions to make the Object to Texture Converter even better. Feel free to suggest improvements or submit pull requests.
-
-## License
-
-This tool is distributed under the MIT License.
-
-[Full License Details](LICENSE)
+We welcome contributions to make the Object to Texture Converter even better. Feel free to suggest improvements.
 
 ## Contact
 
