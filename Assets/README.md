@@ -7,17 +7,22 @@ The Object to Icon Converter is an advanced Unity Editor tool designed for game 
 ## Features
 
 - **Automated Setup**: Automatically configures cameras and a capture target upon tool initialization.
+- **Automated Cleanup** Automatically clean up your scene once you have finished capturing your icons.
 - **Format Support**: Converts objects into PNG or JPG textures.
 - **Resolution Customization**: Offers a wide range of texture resolutions from 1x1 to 8192x8192 pixels.
 - **Enhanced Clarity**: Features anti-aliasing and anisotropic filtering settings for superior texture quality.
 - **Precise Capturing**: Includes auto-centering and orientation adjustments for accurate captures.
+- **Unlimited Capture Bounds** Capture objects of any size with ease.
 - **Visual Guidance**: Utilizes gizmos for real-time alignment and area visualization.
 
 ## Getting Started
 
+- **Video showcase can be found here**
+	- https://www.youtube.com/watch?v=wFBMWRX286A
+
 - **Navigate to `Tools > Icon Converter` for Editor Tools.**
 	- `Tools > Icon Converter > Load Converter Scene` brings you to the provided converter scene.
-	- `Tools > Icon Converter > Create Converter` will automatically setup the converter in your scene.
+	- `Tools > Icon Converter > Create Converter` will automatically set up the converter in your scene.
 	- `Tools > Icon Converter > Destroy Converter` will destroy the converter and all components created alongside it.
 
 ### Using the Included Scene
@@ -48,8 +53,8 @@ Navigate to `Tools > Icon Converter > Load Converter Scene` for quick access.
    - Click "Convert" to generate your texture, which will be saved to the designated location.
 
 7. **Destroy the Converter**:
-	- After you are finished converter all of your assets, navigate to `Tools > Icon Converter > Destroy Converter` to clean up your scene.
-	- NOTE: This will destroy all child objects under any of the converters components.
+	- After you are finished converting all of your assets, navigate to `Tools > Icon Converter > Destroy Converter` to clean up your scene.
+	- NOTE: This will destroy all child objects under any of the converter’s components.
 
 ## Conversion Requirements
 
