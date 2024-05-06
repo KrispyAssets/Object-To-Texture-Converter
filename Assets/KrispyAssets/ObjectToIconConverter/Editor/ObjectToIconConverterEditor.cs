@@ -6,8 +6,8 @@ using UnityEngine.UIElements;
 
 namespace RRS.Converter
 {
-    [CustomEditor(typeof(ObjectToTextureConverter))]
-    public class ObjectToTextureConverterEditor : Editor
+    [CustomEditor(typeof(ObjectToIconConverter))]
+    public class ObjectToIconConverterEditor : Editor
     {
         #region Serialized Properties Initialization
         // General Settings
@@ -60,7 +60,7 @@ namespace RRS.Converter
         private bool _showAdditionalSettings = false;
         private GUIStyle _indentedBackgroundStyle;
 
-        private ObjectToTextureConverter _converter = null;
+        private ObjectToIconConverter _converter = null;
         private Texture2D _checkerboardTexture = null;
         private Vector2 _lastPreviewSize = Vector2.zero;
 
@@ -91,7 +91,7 @@ namespace RRS.Converter
 
         public void Initialize()
         {
-            _converter = (ObjectToTextureConverter)target;
+            _converter = (ObjectToIconConverter)target;
             _converter.CreatePreviewTexture();
             _checkerboardTexture = null;
             _lastPreviewSize = Vector2.zero;
@@ -248,7 +248,7 @@ namespace RRS.Converter
                 EditorGUILayout.BeginVertical(IndentedBackgroundStyle);
                 EditorGUILayout.PropertyField(centeringDepthBufferMultiplierProp, new GUIContent("Centering Depth Buffer Multiplier"));
                 EditorGUILayout.PropertyField(centeringTypeProp, new GUIContent("Centering Type"));
-                if (centeringTypeProp.enumValueIndex == (int)ObjectToTextureConverter.AutoCenteringTypes.FOV_Manipulation)
+                if (centeringTypeProp.enumValueIndex == (int)ObjectToIconConverter.AutoCenteringTypes.FOV_Manipulation)
                 {
                     EditorGUI.indentLevel++;
                     EditorGUILayout.PropertyField(fovManipulationValueProp, new GUIContent("FOV Manipulation Value"));

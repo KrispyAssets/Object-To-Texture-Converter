@@ -1,12 +1,15 @@
 using System;
 using System.ComponentModel.Design;
+using Unity.VisualScripting;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace RRS.Converter
 {
     [ExecuteInEditMode]
-    public class ObjectToTextureConverter : MonoBehaviour
+    public class ObjectToIconConverter : MonoBehaviour
     {
         public enum FileTypes
         {
@@ -126,6 +129,7 @@ namespace RRS.Converter
         [HideInInspector] public float DefaultFOV = 60f;
         [HideInInspector] public string SelectedSavePath = "";
         [HideInInspector] public RenderTexture PreviewRenderTexture = null;
+        [HideInInspector] public Camera Camera = null;
         [HideInInspector] public Camera PreviewCamera = null;
 
         [HideInInspector] public Transform CurrentChild = null;
@@ -136,18 +140,66 @@ namespace RRS.Converter
         public bool IsNameValid => !string.IsNullOrEmpty(TextureName);
         public bool IsSaveValid => IsPathValid(SelectedSavePath) && IsNameValid;
 
-        [MenuItem("Window/Custom Tools/Create Object To Texture Converter")]
-        static void CreateConverterGameObject()
+        private const string TAB_TITLE = "Tools";
+        private const string CONVERTER_TITLE = "Icon Converter";
+        private const string COMPLETE_TAB_TITLE = TAB_TITLE + "/" + CONVERTER_TITLE + "/";
+        private const string SCENE_NAME = "Object Converter";
+
+        [MenuItem(COMPLETE_TAB_TITLE + "Load Converter Scene", priority = 1)]
+        private static void LoadSceneAndSelect()
         {
-            var converter = new GameObject("Object To Texture Converter").AddComponent<ObjectToTextureConverter>();
+            string[] guids = AssetDatabase.FindAssets(SCENE_NAME + " t:scene");
+            if (guids.Length == 0)
+            {
+                Debug.LogError("No scene found with name: " + SCENE_NAME);
+                return;
+            }
+
+            string scenePath = AssetDatabase.GUIDToAssetPath(guids[0]);
+
+            if (EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single).IsValid())
+            {
+                Debug.Log("Scene loaded successfully.");
+
+                ObjectToIconConverter objectToSelect = FindObjectOfType(typeof(ObjectToIconConverter)) as ObjectToIconConverter;
+
+                if (objectToSelect != null)
+                {
+                    Selection.activeGameObject = objectToSelect.gameObject;
+                    EditorGUIUtility.PingObject(objectToSelect);
+                }
+                else
+                {
+                    Debug.LogError("Object not found in the scene.");
+                }
+            }
+            else
+            {
+                Debug.LogError("Failed to load the scene at path: " + scenePath);
+            }
+        }
+
+        [MenuItem(COMPLETE_TAB_TITLE + "Create Converter", priority = 2)]
+        private static void CreateConverterGameObject()
+        {
+            DestroyConverter();
+
+            var converter = new GameObject("Converter").AddComponent<ObjectToIconConverter>();
             converter.Update();
             Undo.RegisterCreatedObjectUndo(converter.gameObject, "Create " + converter.name);
             Selection.activeGameObject = converter.gameObject;
         }
 
+        [MenuItem(COMPLETE_TAB_TITLE + "Destroy Converter", priority = 3)]
+        private static void DestroyConverter()
+        {
+            var converter = FindObjectOfType<ObjectToIconConverter>();
+            DestroyImmediate(converter?.gameObject);
+        }
+
         public void Update()
         {
-            if (Camera.main == null || PreviewCamera == null) { FindOrCreateCameras(); }
+            if (Camera == null || PreviewCamera == null) { FindOrCreateCameras(); }
             if (CaptureTarget == null) { FindOrCreateCaptureTarget(); }
             if (PreviewRenderTexture == null) { CreatePreviewTexture(); }
 
@@ -161,6 +213,14 @@ namespace RRS.Converter
 
         private void OnDestroy()
         {
+            Destroy();
+        }
+
+        private void Destroy()
+        {
+            DestroyImmediate(CaptureTarget?.gameObject);
+            DestroyImmediate(PreviewCamera?.gameObject);
+            DestroyImmediate(Camera?.gameObject);
             ClearPreviewTexture();
         }
 
@@ -170,24 +230,35 @@ namespace RRS.Converter
             if(CaptureTarget != null) { return; }
             CaptureTarget = new GameObject().AddComponent<CaptureTarget>();
             CaptureTarget.name = "Capture Target";
+
+            CaptureTarget.transform.parent = transform;
         }
 
         private void FindOrCreateCameras()
         {
-            if(Camera.main == null)
+            var converterCam = FindObjectOfType<ConverterCamera>();
+
+            if (converterCam != null && converterCam.TryGetComponent(out Camera camera))
             {
-                var camera = new GameObject("Main Camera").AddComponent<Camera>();
-                camera.tag = "MainCamera";
-                SetupCamera(camera, null);
+                Camera = camera;
+                SetupCamera(Camera, transform);
+            }
+            else
+            {
+                DestroyImmediate(converterCam);
+                Camera = new GameObject("Converter Camera").AddComponent<Camera>();
+                Camera.gameObject.AddComponent<ConverterCamera>();
+                //camera.tag = "MainCamera";
+                SetupCamera(Camera, transform);
             }
 
-            for (int i = Camera.main.transform.childCount - 1; i >= 0; i--)
+            for (int i = Camera.transform.childCount - 1; i >= 0; i--)
             {
-                DestroyImmediate(Camera.main.transform.GetChild(i).gameObject);
+                DestroyImmediate(Camera.transform.GetChild(i).gameObject);
             }
 
-            PreviewCamera = new GameObject("Preview Camera").AddComponent<Camera>();
-            SetupCamera(PreviewCamera, Camera.main.transform);
+            if(PreviewCamera == null) { PreviewCamera = new GameObject("Preview Camera").AddComponent<Camera>(); }
+            SetupCamera(PreviewCamera, Camera.transform);
 
             CreatePreviewTexture();
         }
@@ -203,27 +274,27 @@ namespace RRS.Converter
 
         private void SetCamerasFOV(float fov)
         {
-            Camera.main.fieldOfView = fov;
+            Camera.fieldOfView = fov;
             PreviewCamera.fieldOfView = fov;
         }
 
         private void UpdateCamerasBackgroundAlpha()
         {
-            var color = new Color(Camera.main.backgroundColor.r, Camera.main.backgroundColor.g, Camera.main.backgroundColor.b, BackgroundAlpha);
+            var color = new Color(Camera.backgroundColor.r, Camera.backgroundColor.g, Camera.backgroundColor.b, BackgroundAlpha);
 
-            Camera.main.backgroundColor = color;
+            Camera.backgroundColor = color;
             PreviewCamera.backgroundColor = color;
         }
 
         [ExecuteInEditMode]
         private void OnDrawGizmos()
         {
-            if (Camera.main == null || Camera.main.orthographic) { return; }
+            if (Camera == null || Camera.orthographic) { return; }
 
-            Transform camTransform = Camera.main.transform;
-            float fov = Camera.main.fieldOfView;
+            Transform camTransform = Camera.transform;
+            float fov = Camera.fieldOfView;
             float aspect = 1f;
-            float fovManipulationMultiplier = (DefaultFOV / Camera.main.fieldOfView);
+            float fovManipulationMultiplier = (DefaultFOV / Camera.fieldOfView);
 
             float heightAtDepth = (2f * Mathf.Tan(fov * 0.5f * Mathf.Deg2Rad) * CaptureDepth) * fovManipulationMultiplier;
             float widthAtDepth = heightAtDepth * aspect;
@@ -323,10 +394,10 @@ namespace RRS.Converter
         public Texture2D GenerateTexture2DFrom3D()
         {
             RenderTexture renderTexture = CreateRenderTexture();
-            Camera.main.targetTexture = renderTexture;
-            Camera.main.Render();
+            Camera.targetTexture = renderTexture;
+            Camera.Render();
             var texture2D = RenderTextureToTexture2D(renderTexture);
-            Camera.main.targetTexture = null;
+            Camera.targetTexture = null;
             renderTexture.Release();
 
             return texture2D;
@@ -483,8 +554,8 @@ namespace RRS.Converter
 
             SetCamerasFOV((CenteringType == AutoCenteringTypes.FOV_Manipulation) ? FovManipulationValue : DefaultFOV);
 
-            Vector3 forward = Camera.main.transform.forward * CaptureDepth;
-            Vector3 desiredCenter = Camera.main.transform.position + forward * CenteringDepthBufferMultiplier;
+            Vector3 forward = Camera.transform.forward * CaptureDepth;
+            Vector3 desiredCenter = Camera.transform.position + forward * CenteringDepthBufferMultiplier;
             Transform captureTargetChild = TryGetActiveCaptureTargetChild();
 
             Bounds combinedBounds = CalculateObjectBounds(captureTargetChild.gameObject, CenterIncludesChildrenBounds);
@@ -499,8 +570,8 @@ namespace RRS.Converter
                     captureTargetChild.transform.position += centerOffset;
                     break;
                 case AutoCenteringTypes.FOV_Manipulation:
-                    float requiredDistance = CalculateRequiredDistance(Camera.main, combinedBounds);
-                    CenterAndFitObject(Camera.main, captureTargetChild.transform, combinedBounds, requiredDistance);
+                    float requiredDistance = CalculateRequiredDistance(Camera, combinedBounds);
+                    CenterAndFitObject(Camera, captureTargetChild.transform, combinedBounds, requiredDistance);
                     break;
             }
 
