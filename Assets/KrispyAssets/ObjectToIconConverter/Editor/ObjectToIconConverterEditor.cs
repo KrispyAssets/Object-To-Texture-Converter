@@ -2,7 +2,6 @@
 using UnityEditor;
 using UnityEngine;
 
-//test
 namespace RRS.Converter
 {
     [CustomEditor(typeof(ObjectToIconConverter))]
